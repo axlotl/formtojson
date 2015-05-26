@@ -14,8 +14,10 @@
         after: ''
       },
       roles: {
-        1 : 'Administrator',
-        2 : 'Average Shmo'
+        0 : 'object',
+        1 : 'owner',
+        2 : 'admin',
+        3 : 'public'
       },
       json : '',
       _this : this,
@@ -256,7 +258,7 @@
 
 
       {
-        type : 10,
+        type : 12,
           'class' : 'color',
           label : opts.messages.color
       }
@@ -584,6 +586,10 @@
         }); // making the dynamically added option fields sortable.
       };
 
+      var appendColorField = function( values ){
+      	appendFieldLi(opts.messages.color, advFields(values), values);
+      };
+
       // TODO: refactor to move functions into this object
       var appendFieldType = {
         // 'text': appendTextInput(values),
@@ -598,7 +604,8 @@
         '7': appendTextarea,
         '8': appendSelectList,
         '10': appendSelectList,
-        '11': appendTextInput
+        '11': appendTextInput,
+        '12': appendColorField
       };
 
       appendFieldType[values.type](values);
@@ -631,11 +638,35 @@
 
       advFields += '<input type="checkbox" name="enable_roles" value="" ' + (values.role !== undefined ? 'checked' : '') + ' id="enable_roles-' + lastID + '"/> <label for="enable_roles-' + lastID + '" class="roles_label">' + opts.messages.limitRole + '</label>';
       advFields += '<div class="frm-fld available-roles" ' + (values.role !== undefined ? 'style="display:block"' : '') + '>';
+      
+      /*
+      searchable
+      edit
+      read
+      write
+      */
+      advFields += '<p>Searchable:</p>';
 
       for (key in opts.roles) {
-        if ($.inArray(key, ['3', '4']) === -1) {
-          advFields += '<input type="checkbox" name="roles[]" value="' + key + '" id="fld-' + lastID + '-roles-' + key + '" ' + ($.inArray(key, roles) !== -1 ? 'checked' : '') + ' class="roles-field" /><label for="fld-' + lastID + '-roles-' + key + '">' + opts.roles[key] + '</label><br/>';
-        }
+      	
+        
+          advFields += '<input type="checkbox" name="searchable[]" value="' + key + '" id="fld-' + lastID + '-roles-' + key + '" ' + ($.inArray(parseInt(key, 10), [0,1]) !== -1 ? 'checked' : '')  + ' class="searchable-field" /><label for="fld-' + lastID + '-roles-' + key + '">' + opts.roles[key] + '</label><br/>';
+        
+      }
+   
+      advFields += '<p>Read::</p>';
+
+      for (key in opts.roles) {
+        
+          advFields += '<input type="checkbox" name="searchable[]" value="' + key + '" id="fld-' + lastID + '-roles-' + key + '" ' +  'checked class="read-field" /><label for="fld-' + lastID + '-roles-' + key + '">' + opts.roles[key] + '</label><br/>';
+        
+      }
+      advFields += '<p>Write:</p>';
+
+      for (key in opts.roles) {
+        
+          advFields += '<input type="checkbox" name="searchable[]" value="' + key + '" id="fld-' + lastID + '-roles-' + key + '" ' + (key === "0" ? 'checked' : '')  + ' class="write-field" /><label for="fld-' + lastID + '-roles-' + key + '">' + opts.roles[key] + '</label><br/>';
+        
       }
       advFields += '</div></div>';
 
@@ -652,14 +683,20 @@
     // Append the new field to the editor
     var appendFieldLi = function(title, field, values) {
       var label = ($(field).find('input[name="label"]').val() !== '' ? $(field).find('input[name="label"]').val() : title);
-
+//debugger;
+      var inputType;
+      $.map(frmbFields, function(val){
+      	if( val.type === parseInt( values.type, 10)){
+      		inputType = val.class;
+      	}
+      });
       var li = '',
         delBtn = '<a id="del_' + lastID + '" class="del-button btn delete-confirm" href="#" title="' + opts.messages.removeMessage + '">' + opts.messages.remove + '</a>',
         toggleBtn = '<a id="frm-' + lastID + '" class="toggle-form btn" href="#">' + opts.messages.hide + '</a> ',
         required = values.required,
         tooltip = values.description !== '' ? '<span class="element-info corner-all-3 tooltip-element">?<span class="tooltip tooltip-left-side corner-all-3" aria-required="true">' + values.description + '<span class="indicator top-side"></span></span></span>' : '';
 
-      li += '<li id="frm-' + lastID + '-item" class="' + values.type + ' form-field">';
+      li += '<li id="frm-' + lastID + '-item" class="' + values.type + ' form-field" data-type="' + inputType + '">';
       li += '<div class="legend">';
       li += delBtn;
       li += '<span id="txt-title-' + lastID + '" class="field_label">' + label + '</span>' + tooltip + '<span class="required-asterisk" ' + (required === 'true' ? 'style="display:inline"' : '') + '> *</span>' + toggleBtn + '</div>';
@@ -1064,6 +1101,12 @@
 
 (function($){
  	'use strict';
+ 	var roles = {
+ 	  0 : 'object',
+ 	  1 : 'owner',
+ 	  2 : 'admin',
+ 	  3 : 'public'
+ 	};
  	$.fn.formToJSON = function(options){
  		var defaults = {
  		  prepend: '',
@@ -1079,22 +1122,29 @@
  				$(this).children().each( function(){
 
  					if (!($(this).hasClass('moving') || $(this).hasClass('disabled'))){
-
+// debugger;
  					  	for (var att = 0; att < opts.attributes.length; att++) {
  					  		elem = {};
  					  		fID = $(this).attr('id')
  							elem.required = $('#' + $(this).attr('id') + ' input.required').is(':checked') ? true : false;
  							elem.multiple = $('#' + $(this).attr('id') + ' input[name="multiple"]').is(':checked') ? true : false;
- 							elem.type = $(this).attr(opts.attributes[att]);
+ 							elem.type = $(this).attr("data-type");
  							elem.name = $('#' + fID + ' input.fld-name').val();
  							elem.label = $('#' + fID + ' input.fld-label').val();
  							elem.maxLength = $('#' + fID + ' input.fld-max-length').val();
- 							roleVals = $.map($('#' + fID + ' input.roles-field:checked'), function(n) {
- 							  return n.value;
- 							}).join(','),
- 							elem.roles = roleVals;
 
- 							var c, t = elem.type.match(/\d/)[0];
+ 							var permissions, vals, accessTypes = ['searchable', 'write', 'read'];
+ 							$.each(accessTypes, function(k,v){
+ 								permissions = {};
+ 								$.map($('#' + fID + ' input.' + v + '-field'), function(n) {
+ 								  
+ 								  	permissions[roles[n.value]] = $(n).attr('checked') === "checked" ? true :false;
+ 								});
+ 								elem[v] = permissions;	
+ 							});
+ 							
+
+ 							var c, t = $(this).attr(opts.attributes[att]).match(/\d/)[0];
  							
 
  							//select, radio group, or checkbox group
@@ -1103,8 +1153,6 @@
  							  	c = 0;
  							  	$('#' + $(this).attr('id') + ' input[type=text][class=option]').each(function() {
  							    	if ($(this).attr('name') !== 'title') {
- 							      		// 
- 							      		// serialStr += '\n\t\t\t<option' + selected + '>' + $(this).val() + '</option>';
 
  							      		var selected = $(this).prev().is(':checked') ? true : false;
  							      		elem.children[c] = {
@@ -1117,12 +1165,10 @@
  							  	});
  							  
  							}
-
-
  							console.log('elem: ' + index);
  							console.log(elem);
  							
- 							jsonObj[index++] = elem;
+ 							jsonObj[elem.label] = elem;
  						}
  					}
  				});
@@ -1130,8 +1176,14 @@
  			}
  			
  		});
- 		console.log(jsonObj);
- 		return JSON.stringify(jsonObj);
+		var label = {
+			singular : "Film",
+			plural : "Films"
+		};
+
+		var output = { template : { label : label,  properties : jsonObj }};
+ 		console.log(output);
+ 		return JSON.stringify( output );
  	};
 })(jQuery);
 

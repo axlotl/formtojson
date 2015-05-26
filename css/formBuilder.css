@@ -425,6 +425,12 @@ ol.sortable-options li {
   background-position: 0 -473px;
   height: 27px
 }
+.frmb .prev-holder.type_12 {
+  width: 64px;
+  height: 23px;
+  background-position: 0 -770px;
+}
+
 .frmb .prev-holder.type_10 {
   background: 0 0;
   line-height: 1.5em;
